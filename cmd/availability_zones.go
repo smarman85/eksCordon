@@ -9,7 +9,7 @@ import (
 )
 
 
-func getFailureDomains() map[string]int {
+func GetFailureDomains() map[string]int {
         availability_zones := make(map[string]int)
         nodes, err := Clientset.CoreV1().Nodes().List(metav1.ListOptions{})
         if err != nil {
