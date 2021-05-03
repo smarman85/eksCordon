@@ -18,13 +18,13 @@ func init() {
         config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("HOME") + "/.kube/config")
         if err != nil {
           //logging.LogErrorExitf("Error creating config: %v", err)
-          fmt.Println("Error creating config: %v", err)
+          fmt.Printf("Error creating config: %v", err)
         }
 
         Clientset, err = kubernetes.NewForConfig(config)
         if err != nil {
           //logging.LogErrorExitf("Error creating config: %v", err)
-          fmt.Println("Error creating config: %v", err)
+          fmt.Printf("Error creating config: %v", err)
         }
 
         rootCmd.AddCommand(listAZs)

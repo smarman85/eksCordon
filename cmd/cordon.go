@@ -15,7 +15,7 @@ func toggleClusterAutoScaler(desiredReplicas int) {
             GetScale("cluster-autoscaler", metav1.GetOptions{})
 
         if err != nil {
-                fmt.Println("error getting current cluster-autoscaler replicas: %v", err)
+                fmt.Printf("error getting current cluster-autoscaler replicas: %v", err)
         }
 
         updatedScale := *currentScale
@@ -26,7 +26,7 @@ func toggleClusterAutoScaler(desiredReplicas int) {
             UpdateScale("cluster-autoscaler", &updatedScale)
 
         if err != nil {
-                fmt.Println("error scaling cluster-autoscaler: %v", err)
+                fmt.Printf("error scaling cluster-autoscaler: %v", err)
         }
         fmt.Println(scaledConfig)
 }
@@ -36,7 +36,7 @@ func getNodesInAZ(zone string) []string {
         k8sNodes := make([]string, 0)
         nodes, err := Clientset.CoreV1().Nodes().List(metav1.ListOptions{LabelSelector: "failure-domain.beta.kubernetes.io/zone="+zone})
         if err != nil {
-                fmt.Println("error listing nodes in az: %v", err)
+                fmt.Printf("error listing nodes in az: %v", err)
         }
         for node, _ := range nodes.Items {
                 k8sNodes = append(k8sNodes, nodes.Items[node].ObjectMeta.Labels["kubernetes.io/hostname"])
@@ -55,9 +55,9 @@ func cordonNodes(nodesInAZ []string) {
                     Nodes().
                     Patch(nodesInAZ[i], "application/strategic-merge-patch+json", patch)
                 if err != nil {
-                        fmt.Println("error patching node: %v", err)
+                        fmt.Printf("error patching node: %v", err)
                 }
-                fmt.Println("Successfully Cordoned node: %v", nodesInAZ[i])
+                fmt.Printf("Successfully Cordoned node: %v", nodesInAZ[i])
         }
 }
 
@@ -67,7 +67,7 @@ func podsOnNode(nodeName string) map[string]string {
         pods, err := Clientset.CoreV1().
             Pods("").List(metav1.ListOptions{FieldSelector: "spec.nodeName="+nodeName})
         if err != nil {
-                fmt.Println("error listing pods on node: %v %v", nodeName, err)
+                fmt.Printf("error listing pods on node: %v %v", nodeName, err)
         }
         for pod, _ := range pods.Items {
                 //fmt.Println(pods.Items[pod].Name, pods.Items[pod].Namespace)
@@ -82,7 +82,7 @@ func evictPods(nodeMap map[string]string) {
                 fmt.Println("Container: ", container, "Namespace: ", namespace)
                 err := Clientset.CoreV1().Pods(namespace).Delete(container, &metav1.DeleteOptions{})
                 if err != nil {
-                        fmt.Println("error removing pod: %v", err)
+                        fmt.Printf("error removing pod: %v", err)
                 }
         }
 }
