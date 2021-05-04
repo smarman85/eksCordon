@@ -11,7 +11,10 @@ import (
 
 func GetFailureDomains() map[string]int {
         availability_zones := make(map[string]int)
-        nodes, err := Clientset.CoreV1().Nodes().List(metav1.ListOptions{})
+        nodes, err := clientset.
+                CoreV1().
+                Nodes().
+                List(metav1.ListOptions{})
         if err != nil {
                 fmt.Printf("error listing nodes: %v", err)
         }
@@ -29,13 +32,12 @@ func DisplayAvailabilityZones(writer io.Writer, zoneMap map[string]int) {
         fmt.Fprintf(writer, message)
 }
 
-
 var listAZs = &cobra.Command{
         Use: "listAZs",
         Short: "List AZs",
         Long: "Lists all the availability zones associated to your current context",
         Run: func(cmd *cobra.Command, args []string) {
-                availability_zones := getFailureDomains()
+                availability_zones := GetFailureDomains()
                 DisplayAvailabilityZones(os.Stdout, availability_zones)
         },
 }

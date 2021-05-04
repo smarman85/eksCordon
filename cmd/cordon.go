@@ -10,7 +10,7 @@ import (
 
 func toggleClusterAutoScaler(desiredReplicas int) {
 
-        currentScale, err := Clientset.AppsV1().
+        currentScale, err := clientset.AppsV1().
             Deployments("kube-system").
             GetScale("cluster-autoscaler", metav1.GetOptions{})
 
@@ -21,7 +21,7 @@ func toggleClusterAutoScaler(desiredReplicas int) {
         updatedScale := *currentScale
         updatedScale.Spec.Replicas = int32(desiredReplicas)
 
-        scaledConfig, err := Clientset.AppsV1().
+        scaledConfig, err := clientset.AppsV1().
             Deployments("kube-system").
             UpdateScale("cluster-autoscaler", &updatedScale)
 
@@ -34,7 +34,9 @@ func toggleClusterAutoScaler(desiredReplicas int) {
 //func getNodesInAZ(zone string) ([]string, error) {
 func getNodesInAZ(zone string) []string {
         k8sNodes := make([]string, 0)
-        nodes, err := Clientset.CoreV1().Nodes().List(metav1.ListOptions{LabelSelector: "failure-domain.beta.kubernetes.io/zone="+zone})
+        nodes, err := clientset.CoreV1().
+            Nodes().
+            List(metav1.ListOptions{LabelSelector: "failure-domain.beta.kubernetes.io/zone="+zone})
         if err != nil {
                 fmt.Printf("error listing nodes in az: %v", err)
         }
@@ -51,7 +53,7 @@ func getNodesInAZ(zone string) []string {
 func cordonNodes(nodesInAZ []string) {
         patch := []byte(`{"spec":{"unschedulable":true}}`)
         for i := 0; i < len(nodesInAZ); i ++ {
-                _, err := Clientset.CoreV1().
+                _, err := clientset.CoreV1().
                     Nodes().
                     Patch(nodesInAZ[i], "application/strategic-merge-patch+json", patch)
                 if err != nil {
@@ -64,8 +66,9 @@ func cordonNodes(nodesInAZ []string) {
 func podsOnNode(nodeName string) map[string]string {
         //podsOnNode := make([]string, 0)
         podsOnNode := make(map[string]string, 0)
-        pods, err := Clientset.CoreV1().
-            Pods("").List(metav1.ListOptions{FieldSelector: "spec.nodeName="+nodeName})
+        pods, err := clientset.CoreV1().
+            Pods("").
+            List(metav1.ListOptions{FieldSelector: "spec.nodeName="+nodeName})
         if err != nil {
                 fmt.Printf("error listing pods on node: %v %v", nodeName, err)
         }
@@ -80,7 +83,10 @@ func evictPods(nodeMap map[string]string) {
         fmt.Println(nodeMap)
         for container, namespace := range nodeMap {
                 fmt.Println("Container: ", container, "Namespace: ", namespace)
-                err := Clientset.CoreV1().Pods(namespace).Delete(container, &metav1.DeleteOptions{})
+                err := clientset.
+                        CoreV1().
+                        Pods(namespace).
+                        Delete(container, &metav1.DeleteOptions{})
                 if err != nil {
                         fmt.Printf("error removing pod: %v", err)
                 }

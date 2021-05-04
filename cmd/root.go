@@ -9,9 +9,10 @@ import (
 	      //"github.com/spf13/viper"
 )
 
-var Clientset *kubernetes.Clientset
-
-var zone string
+var (
+        clientset *kubernetes.Clientset
+        zone string
+)
 
 func init() {
         //config, err := rest.InClusterConfig()
@@ -21,7 +22,7 @@ func init() {
           fmt.Printf("Error creating config: %v", err)
         }
 
-        Clientset, err = kubernetes.NewForConfig(config)
+        clientset, err = kubernetes.NewForConfig(config)
         if err != nil {
           //logging.LogErrorExitf("Error creating config: %v", err)
           fmt.Printf("Error creating config: %v", err)
@@ -30,7 +31,6 @@ func init() {
         rootCmd.AddCommand(listAZs)
         rootCmd.AddCommand(cordonAZ)
 
-        //listAZs.Flags().BoolP("listazs", "l", false, "list all availability zones")
         cordonAZ.Flags().StringVarP(&zone, "zone", "z", "", "sepcify an availability zone to cordon")
         cordonAZ.MarkFlagRequired("zone")
 }
@@ -38,9 +38,6 @@ func init() {
 var rootCmd = &cobra.Command{
         Use: "awsCordon",
         Short: "Helper script to cordon and drain a troublesome availability zone",
-        /*Run: func(cmd *cobra.Command, args []string) {
-                fmt.Println("Hello from cobra")
-        },*/
 }
 
 func Execute() error {

@@ -6,6 +6,10 @@ import (
         //"k8s.io/client-go/kubernetes/fake"
 )
 
+/*type FakeNodes struct {
+        Fake *FakeCoreV1
+}*/
+
 func TestAvailabilityZones(t *testing.T) {
 
         t.Run("Prints AZs and number of nodes in an az", func(t *testing.T) {
@@ -23,12 +27,15 @@ func TestAvailabilityZones(t *testing.T) {
                 }
         })
 
-        t.Run("Creates a map of availability zones and nodes", func(t *testing.T) {
+        /*t.Run("Creates a map of availability zones and nodes", func(t *testing.T) {
+                azs, err := fake.CoreV1().
+                    Nodes().
+                    List(metav1.ListOptions{})
                 got := GetFailureDomains()
                 want := map[string]int{}
 
                 if got != want {
                         t.Errorf("got %q want %q", got, want)
                 }
-        })
+        })*/
 }
