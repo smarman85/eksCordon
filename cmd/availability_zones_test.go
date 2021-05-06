@@ -38,6 +38,7 @@ func TestGetFailureDomains(t *testing.T) {
         data := []struct {
                 clientset kubernetes.Interface
                 err       error
+                want      map[string]int
         }{
                 {
                         clientset: fake.NewSimpleClientset(&v1.NodeList{
@@ -49,6 +50,7 @@ func TestGetFailureDomains(t *testing.T) {
                                         }},
                                 },
                         }),
+                        want: map[string]int{"us-east-1a": 1},
                 },
         }
 
@@ -56,17 +58,16 @@ func TestGetFailureDomains(t *testing.T) {
                 t.Run("", func(single struct {
                         clientset kubernetes.Interface
                         err       error
+                        want      map[string]int
                 }) func(t *testing.T) {
                         return func(t *testing.T) {
-
-                                want := map[string]int{"us-east-1a": 1}
 
                                 availabilitZones, err := GetFailureDomains(single.clientset)
                                 if err != nil {
                                         t.Fatalf(err.Error())
                                 }
-                                if !reflect.DeepEqual(availabilitZones, want) {
-                                        t.Errorf("got %q want %q", availabilitZones, want)
+                                if !reflect.DeepEqual(availabilitZones, single.want) {
+                                        t.Errorf("got %q want %q", availabilitZones, single.want)
                                 }
                         }
                 }(single))
