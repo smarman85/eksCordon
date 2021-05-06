@@ -10,7 +10,7 @@ import (
 )
 
 var (
-        clientset *kubernetes.Clientset
+        client *kubernetes.Clientset
         zone string
 )
 
@@ -22,7 +22,7 @@ func init() {
           fmt.Printf("Error creating config: %v", err)
         }
 
-        clientset, err = kubernetes.NewForConfig(config)
+        client, err = kubernetes.NewForConfig(config)
         if err != nil {
           //logging.LogErrorExitf("Error creating config: %v", err)
           fmt.Printf("Error creating config: %v", err)

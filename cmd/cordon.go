@@ -3,12 +3,13 @@ package cmd
 import (
         "fmt"
         "github.com/spf13/cobra"
+        "k8s.io/client-go/kubernetes"
         metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 //        "errors"
 //        "log"
 )
 
-func toggleClusterAutoScaler(desiredReplicas int) {
+func toggleClusterAutoScaler(clientset kubernetes.Interface, desiredReplicas int) {
 
         currentScale, err := clientset.AppsV1().
             Deployments("kube-system").
@@ -32,7 +33,7 @@ func toggleClusterAutoScaler(desiredReplicas int) {
 }
 
 //func getNodesInAZ(zone string) ([]string, error) {
-func getNodesInAZ(zone string) []string {
+func getNodesInAZ(clientset kubernetes.Interface, zone string) []string {
         k8sNodes := make([]string, 0)
         nodes, err := clientset.CoreV1().
             Nodes().
@@ -50,7 +51,7 @@ func getNodesInAZ(zone string) []string {
         return k8sNodes
 }
 
-func cordonNodes(nodesInAZ []string) {
+func cordonNodes(clientset kubernetes.Interface, nodesInAZ []string) {
         patch := []byte(`{"spec":{"unschedulable":true}}`)
         for i := 0; i < len(nodesInAZ); i ++ {
                 _, err := clientset.CoreV1().
@@ -63,7 +64,7 @@ func cordonNodes(nodesInAZ []string) {
         }
 }
 
-func podsOnNode(nodeName string) map[string]string {
+func podsOnNode(clientset kubernetes.Interface, nodeName string) map[string]string {
         //podsOnNode := make([]string, 0)
         podsOnNode := make(map[string]string, 0)
         pods, err := clientset.CoreV1().
@@ -79,7 +80,7 @@ func podsOnNode(nodeName string) map[string]string {
         return podsOnNode
 }
 
-func evictPods(nodeMap map[string]string) {
+func evictPods(clientset kubernetes.Interface, nodeMap map[string]string) {
         fmt.Println(nodeMap)
         for container, namespace := range nodeMap {
                 fmt.Println("Container: ", container, "Namespace: ", namespace)
@@ -99,7 +100,7 @@ func drainNodes(nodesInAZ []string) {
                 podsOnNode(nodesInAZ[i])
         }*/
         testMap := map[string]string{"gosite-6688c5769b-tdzdj": "gosite"}
-        evictPods(testMap)
+        evictPods(client, testMap)
 }
 
 var cordonAZ = &cobra.Command{
@@ -110,7 +111,7 @@ var cordonAZ = &cobra.Command{
                 fmt.Println("Scaling cluster autoscaler to 0 replicas (not really though)")
                 //toggleClusterAutoScaler(0)
                 fmt.Println("Cordon!\t"+ zone)
-                nodes := getNodesInAZ(zone)
+                nodes := getNodesInAZ(client, zone)
                 //cordonNodes(nodes)
                 drainNodes(nodes)
         },
