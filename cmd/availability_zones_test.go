@@ -10,10 +10,6 @@ import (
         "k8s.io/client-go/kubernetes"
 )
 
-/*type FakeNodes struct {
-        Fake *FakeCoreV1
-}*/
-
 func TestDisplayAvailabilityZones(t *testing.T) {
 
 

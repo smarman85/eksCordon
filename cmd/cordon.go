@@ -9,14 +9,15 @@ import (
 //        "log"
 )
 
-func toggleClusterAutoScaler(clientset kubernetes.Interface, desiredReplicas int) {
+func toggleClusterAutoScaler(clientset kubernetes.Interface, desiredReplicas int) (kubernetes.Scale, error) {
 
         currentScale, err := clientset.AppsV1().
             Deployments("kube-system").
             GetScale("cluster-autoscaler", metav1.GetOptions{})
 
         if err != nil {
-                fmt.Printf("error getting current cluster-autoscaler replicas: %v", err)
+                //fmt.Printf("error getting current cluster-autoscaler replicas: %v", err)
+                return nil, err
         }
 
         updatedScale := *currentScale
@@ -27,9 +28,12 @@ func toggleClusterAutoScaler(clientset kubernetes.Interface, desiredReplicas int
             UpdateScale("cluster-autoscaler", &updatedScale)
 
         if err != nil {
-                fmt.Printf("error scaling cluster-autoscaler: %v", err)
+                //fmt.Printf("error scaling cluster-autoscaler: %v", err)
+                return nil, err
         }
-        fmt.Println(scaledConfig)
+        fmt.Printf("%T", scaledConfig)
+        return scaledConfig, nil
+        //fmt.Println(scaledConfig)
 }
 
 //func getNodesInAZ(zone string) ([]string, error) {
