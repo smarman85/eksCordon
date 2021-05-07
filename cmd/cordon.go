@@ -86,27 +86,36 @@ func podsOnNode(clientset kubernetes.Interface, nodeName string) (map[string]str
         return podsOnNode, nil
 }
 
-func evictPods(clientset kubernetes.Interface, nodeMap map[string]string) {
-        fmt.Println(nodeMap)
-        for container, namespace := range nodeMap {
+func evictPods(clientset kubernetes.Interface, podMap map[string]string, writer io.Writer) {
+        for container, namespace := range podMap {
                 fmt.Println("Container: ", container, "Namespace: ", namespace)
                 err := clientset.
                         CoreV1().
                         Pods(namespace).
                         Delete(container, &metav1.DeleteOptions{})
                 if err != nil {
-                        fmt.Printf("error removing pod: %v", err)
+                        log.Fatalf("error removing pod: %v", err)
                 }
+                messge := fmt.Sprintf("evicting pod: %s in the %s namespace", container, namespace)
+                fmt.Fprintf(writer, messge)
         }
 }
 
-func drainNodes(nodesInAZ []string) {
-        /*for i := 0; i < len(nodesInAZ); i ++ {
+func drainNodes(clientset kubernetes.Interface, nodesInAZ []string) {
+        affectedPods := make(map[string]string, 0)
+
+        for i := 0; i < len(nodesInAZ); i ++ {
                 fmt.Println(nodesInAZ[i])
-                podsOnNode(nodesInAZ[i])
-        }*/
-        testMap := map[string]string{"gosite-6688c5769b-tdzdj": "gosite"}
-        evictPods(client, testMap)
+                pods, err := podsOnNode(clientset, nodesInAZ[i])
+                if err != nil {
+                        log.Fatalf("error getting pods on node: %v", err)
+                }
+                for podName, namespace := range pods {
+                        affectedPods[podName] = namespace
+                }
+        }
+
+        evictPods(clientset, affectedPods, os.Stdout)
 }
 
 var cordonAZ = &cobra.Command{
@@ -114,17 +123,17 @@ var cordonAZ = &cobra.Command{
         Short: "Cordon an AZ (only one)",
         Long: "This will make sure the nodes are unschedulable, so when the drain command runs nodes won't go back to the bad az. This also ensurs the cluster autoscaler isn't running",
         Run: func (cmd *cobra.Command, args []string) {
-                fmt.Println("Scaling cluster autoscaler to 0 replicas (not really though)")
-                /*_, err := toggleClusterAutoScaler(client, 0)
+                fmt.Println("Scaling cluster autoscaler to 0 replicas")
+                _, err := toggleClusterAutoScaler(client, 0)
                 if err != nil {
                         fmt.Printf("error scaling cluster autoscaler: %v", err)
-                }*/
+                }
                 fmt.Println("Cordon!\t"+ zone)
                 nodes, err := getNodesInAZ(client, zone)
                 if err != nil {
                         log.Fatalf("error getting nodes in %s: %v", zone, err)
                 }
                 cordonNodes(client, nodes, os.Stdout)
-                drainNodes(nodes)
+                drainNodes(client, nodes)
         },
 }

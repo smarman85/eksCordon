@@ -167,3 +167,24 @@ func TestPodsOnNode(t *testing.T) {
                 t.Errorf("got %q want %q", got, want)
         }
 }
+
+func TestEvictPods(t *testing.T) {
+        clientset := fake.NewSimpleClientset(
+                &v1.Pod{
+                        ObjectMeta: metav1.ObjectMeta{
+                                Name: "test-pod",
+                                Namespace: "test-space",
+                        },
+                },
+        )
+        podMap := map[string]string{"test-pod": "test-space"}
+
+        buffer := bytes.Buffer{}
+        evictPods(clientset, podMap, &buffer)
+        got := buffer.String()
+        want := "evicting pod: test-pod in the test-space namespace"
+
+        if got != want {
+                t.Errorf("got %q want %q", got, want)
+        }
+}
