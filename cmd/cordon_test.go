@@ -1,18 +1,17 @@
 package cmd
 
 import (
+        "fmt"
         "testing"
         "k8s.io/client-go/kubernetes/fake"
         "k8s.io/client-go/kubernetes"
         v1 "k8s.io/api/core/v1"
         appv1 "k8s.io/api/apps/v1"
         metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+        //scalev1 "k8s.io/api/autoscaling/v1"
 )
 
 func TesttoggleClusterAutoScaler(t *testing.T) {
-
-        currentReplicas := *int32(1)
-        desiredReplicas := *int32(0)
 
         clientset := fake.NewSimpleClientset(&appv1.Deployment{
                 ObjectMeta: metav1.ObjectMeta{
@@ -20,26 +19,20 @@ func TesttoggleClusterAutoScaler(t *testing.T) {
                         Namespace: "kube-system",
                 },
                 Spec: appv1.DeploymentSpec{
-                        Replicas: currentReplicas,
+                        Replicas: int32Ptr(1),
                 },
         })
 
         got, err := toggleClusterAutoScaler(clientset, 0)
+        fmt.Println(got)
         if err != nil {
                 t.Fatalf("errored toggeling cas: %q", err)
         }
-        want := fake.NewSimpleClientset(&appv1.Deployment{
-                ObjectMeta: metav1.ObjectMeta{
-                        Name: "cluster-autoscaler",
-                        Namespace: "kube-system",
-                },
-                Spec: appv1.DeploymentSpec{
-                        Replicas: desiredReplicas,
-                },
-        })
+        //want := fake.NewSimpleClientset(&appv1.Deployment{
+        want := int32Ptr(0)
 
         if got != want {
-                t.Errorf("got %q want %q", got, want)
+                t.Errorf("got %p want %p", got, want)
         }
 
 }
@@ -101,4 +94,8 @@ func TestGetNodesInAZ(t *testing.T) {
                        }
                }(single))
        }
+}
+
+func int32Ptr(i int32) *int32 {
+        return &i
 }

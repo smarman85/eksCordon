@@ -5,35 +5,32 @@ import (
         "github.com/spf13/cobra"
         "k8s.io/client-go/kubernetes"
         metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+        //scalev1 "k8s.io/api/autoscaling/v1"
 //        "errors"
 //        "log"
 )
 
-func toggleClusterAutoScaler(clientset kubernetes.Interface, desiredReplicas int) (kubernetes.Scale, error) {
+func toggleClusterAutoScaler(clientset kubernetes.Interface, desiredReplicas int) (*int32, error) {
 
         currentScale, err := clientset.AppsV1().
             Deployments("kube-system").
             GetScale("cluster-autoscaler", metav1.GetOptions{})
 
         if err != nil {
-                //fmt.Printf("error getting current cluster-autoscaler replicas: %v", err)
                 return nil, err
         }
 
         updatedScale := *currentScale
         updatedScale.Spec.Replicas = int32(desiredReplicas)
 
-        scaledConfig, err := clientset.AppsV1().
+        _, err = clientset.AppsV1().
             Deployments("kube-system").
             UpdateScale("cluster-autoscaler", &updatedScale)
 
         if err != nil {
-                //fmt.Printf("error scaling cluster-autoscaler: %v", err)
                 return nil, err
         }
-        fmt.Printf("%T", scaledConfig)
-        return scaledConfig, nil
-        //fmt.Println(scaledConfig)
+        return &updatedScale.Spec.Replicas, nil
 }
 
 //func getNodesInAZ(zone string) ([]string, error) {
@@ -113,7 +110,10 @@ var cordonAZ = &cobra.Command{
         Long: "This will make sure the nodes are unschedulable, so when the drain command runs nodes won't go back to the bad az. This also ensurs the cluster autoscaler isn't running",
         Run: func (cmd *cobra.Command, args []string) {
                 fmt.Println("Scaling cluster autoscaler to 0 replicas (not really though)")
-                //toggleClusterAutoScaler(0)
+                /*_, err := toggleClusterAutoScaler(client, 0)
+                if err != nil {
+                        fmt.Printf("error scaling cluster autoscaler: %v", err)
+                }*/
                 fmt.Println("Cordon!\t"+ zone)
                 nodes := getNodesInAZ(client, zone)
                 //cordonNodes(nodes)
