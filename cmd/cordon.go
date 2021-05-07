@@ -5,9 +5,11 @@ import (
         "github.com/spf13/cobra"
         "k8s.io/client-go/kubernetes"
         metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+        "log"
+        "io"
+        "os"
         //scalev1 "k8s.io/api/autoscaling/v1"
 //        "errors"
-//        "log"
 )
 
 func toggleClusterAutoScaler(clientset kubernetes.Interface, desiredReplicas int) (*int32, error) {
@@ -34,13 +36,14 @@ func toggleClusterAutoScaler(clientset kubernetes.Interface, desiredReplicas int
 }
 
 //func getNodesInAZ(zone string) ([]string, error) {
-func getNodesInAZ(clientset kubernetes.Interface, zone string) []string {
+func getNodesInAZ(clientset kubernetes.Interface, zone string) ([]string, error) {
         k8sNodes := make([]string, 0)
         nodes, err := clientset.CoreV1().
             Nodes().
             List(metav1.ListOptions{LabelSelector: "failure-domain.beta.kubernetes.io/zone="+zone})
         if err != nil {
-                fmt.Printf("error listing nodes in az: %v", err)
+                //fmt.Printf("error listing nodes in az: %v", err)
+                return nil, err
         }
         for node, _ := range nodes.Items {
                 k8sNodes = append(k8sNodes, nodes.Items[node].ObjectMeta.Labels["kubernetes.io/hostname"])
@@ -48,37 +51,39 @@ func getNodesInAZ(clientset kubernetes.Interface, zone string) []string {
         if len(k8sNodes) == 0 {
                 //return k8sNodes, errors.New("There are no nodes in the given zone")
                 k8sNodes = append(k8sNodes, "docker-desktop")
+                return nil, err
         }
-        return k8sNodes
+        return k8sNodes, err
 }
 
-func cordonNodes(clientset kubernetes.Interface, nodesInAZ []string) {
+func cordonNodes(clientset kubernetes.Interface, nodesInAZ []string, writer io.Writer) {
         patch := []byte(`{"spec":{"unschedulable":true}}`)
         for i := 0; i < len(nodesInAZ); i ++ {
                 _, err := clientset.CoreV1().
                     Nodes().
                     Patch(nodesInAZ[i], "application/strategic-merge-patch+json", patch)
                 if err != nil {
-                        fmt.Printf("error patching node: %v", err)
+                        log.Fatalf("error patching node: %v", err)
                 }
-                fmt.Printf("Successfully Cordoned node: %v", nodesInAZ[i])
+                message := fmt.Sprintf("Successfully Cordoned node: %s \n", nodesInAZ[i])
+                fmt.Fprintf(writer, message)
         }
 }
 
-func podsOnNode(clientset kubernetes.Interface, nodeName string) map[string]string {
-        //podsOnNode := make([]string, 0)
+func podsOnNode(clientset kubernetes.Interface, nodeName string) (map[string]string, error) {
         podsOnNode := make(map[string]string, 0)
         pods, err := clientset.CoreV1().
             Pods("").
             List(metav1.ListOptions{FieldSelector: "spec.nodeName="+nodeName})
         if err != nil {
                 fmt.Printf("error listing pods on node: %v %v", nodeName, err)
+                return nil, err
         }
         for pod, _ := range pods.Items {
                 //fmt.Println(pods.Items[pod].Name, pods.Items[pod].Namespace)
                 podsOnNode[pods.Items[pod].Name] = pods.Items[pod].Namespace
         }
-        return podsOnNode
+        return podsOnNode, nil
 }
 
 func evictPods(clientset kubernetes.Interface, nodeMap map[string]string) {
@@ -115,8 +120,11 @@ var cordonAZ = &cobra.Command{
                         fmt.Printf("error scaling cluster autoscaler: %v", err)
                 }*/
                 fmt.Println("Cordon!\t"+ zone)
-                nodes := getNodesInAZ(client, zone)
-                //cordonNodes(nodes)
+                nodes, err := getNodesInAZ(client, zone)
+                if err != nil {
+                        log.Fatalf("error getting nodes in %s: %v", zone, err)
+                }
+                cordonNodes(client, nodes, os.Stdout)
                 drainNodes(nodes)
         },
 }

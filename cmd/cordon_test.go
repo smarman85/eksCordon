@@ -5,6 +5,8 @@ import (
         "testing"
         "k8s.io/client-go/kubernetes/fake"
         "k8s.io/client-go/kubernetes"
+        "reflect"
+        "bytes"
         v1 "k8s.io/api/core/v1"
         appv1 "k8s.io/api/apps/v1"
         metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -81,7 +83,10 @@ func TestGetNodesInAZ(t *testing.T) {
                        want     []string
                }) func (t *testing.T) {
                        return func(t *testing.T) {
-                               got := getNodesInAZ(single.clientset, single.zone)
+                               got, err := getNodesInAZ(single.clientset, single.zone)
+                               if err != nil {
+                                       t.Errorf("error getting nodes in %s: %v", single.zone, err)
+                               }
                                if len(got) != len(single.want) {
                                        t.Errorf("slices are unequal lengths got %q want %q", got, single.want)
                                }
@@ -98,4 +103,67 @@ func TestGetNodesInAZ(t *testing.T) {
                        }
                }(single))
        }
+}
+
+func TestCordonNodes(t *testing.T) {
+        clientset := fake.NewSimpleClientset(&v1.NodeList{
+                Items: []v1.Node{
+                        v1.Node{
+                                ObjectMeta: metav1.ObjectMeta{
+                                        Name: "host1",
+                                        Labels: map[string]string{
+                                                "failure-domain.beta.kubernetes.io/zone": "us-east-1a",
+                                                "kubernetes.io/hostname": "host1",
+                                        },
+                                },
+                        }, v1.Node{
+                                ObjectMeta: metav1.ObjectMeta{
+                                        Name: "host2",
+                                        Labels: map[string]string{
+                                                "failure-domain.beta.kubernetes.io/zone": "us-east-1a",
+                                                "kubernetes.io/hostname": "host2",
+                                        },
+                                },
+                        },
+                },
+        })
+
+        testHosts := []string{"host1", "host2"}
+        buffer := bytes.Buffer{}
+
+        cordonNodes(clientset, testHosts, &buffer)
+        got := buffer.String()
+        want := "Successfully Cordoned node: host1 \nSuccessfully Cordoned node: host2 \n"
+        if got != want {
+                t.Errorf("got %q want %q", got, want)
+        }
+}
+
+func TestPodsOnNode(t *testing.T) {
+        clientset := fake.NewSimpleClientset(
+                &v1.PodList{
+                        Items: []v1.Pod{
+                                v1.Pod{
+                                        ObjectMeta: metav1.ObjectMeta{
+                                                Name: "mr-meeseeks",
+                                                Namespace: "existence",
+                                        },
+                                        Spec: v1.PodSpec{
+                                                NodeName: "node1",
+                                        },
+                                },
+                        },
+                },
+        )
+        nodeName := "node1"
+
+        got, err :=  podsOnNode(clientset, nodeName)
+        if err != nil {
+                t.Errorf("Error getting pod list: %v", err)
+        }
+        want := map[string]string{"mr-meeseeks": "existence"}
+
+        if !reflect.DeepEqual(got, want) {
+                t.Errorf("got %q want %q", got, want)
+        }
 }
