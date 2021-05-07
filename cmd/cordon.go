@@ -12,6 +12,10 @@ import (
 //        "errors"
 )
 
+func int64Ptr(i int64) *int64 {
+        return &i
+}
+
 func toggleClusterAutoScaler(clientset kubernetes.Interface, desiredReplicas int) (*int32, error) {
 
         currentScale, err := clientset.AppsV1().
@@ -92,7 +96,7 @@ func evictPods(clientset kubernetes.Interface, podMap map[string]string, writer 
                 err := clientset.
                         CoreV1().
                         Pods(namespace).
-                        Delete(container, &metav1.DeleteOptions{})
+                        Delete(container, &metav1.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
                 if err != nil {
                         log.Fatalf("error removing pod: %v", err)
                 }
