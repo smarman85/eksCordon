@@ -11,6 +11,10 @@ import (
         //scalev1 "k8s.io/api/autoscaling/v1"
 )
 
+func int32Ptr(i int32) *int32 {
+        return &i
+}
+
 func TesttoggleClusterAutoScaler(t *testing.T) {
 
         clientset := fake.NewSimpleClientset(&appv1.Deployment{
@@ -94,8 +98,4 @@ func TestGetNodesInAZ(t *testing.T) {
                        }
                }(single))
        }
-}
-
-func int32Ptr(i int32) *int32 {
-        return &i
 }
