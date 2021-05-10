@@ -1,9 +1,9 @@
 package main
 
 import (
-        "eksCordon/cmd"
+	"eksCordon/cmd"
 )
 
 func main() {
-        cmd.Execute()
+	cmd.Execute()
 }
