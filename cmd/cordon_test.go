@@ -145,7 +145,7 @@ func TestPodsOnNode(t *testing.T) {
 			Items: []v1.Pod{
 				v1.Pod{
 					TypeMeta: metav1.TypeMeta{
-						Kind: "Deployment",
+						Kind: "Pod",
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mr-meeseeks",
@@ -153,18 +153,6 @@ func TestPodsOnNode(t *testing.T) {
 					},
 					Spec: v1.PodSpec{
 						NodeName: "node1",
-					},
-				},
-				v1.Pod{
-					TypeMeta: metav1.TypeMeta{
-						Kind: "DaemonSet",
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "leave-me-be",
-						Namespace: "existence",
-					},
-					Spec: v1.PodSpec{
-						NodeName: "node2",
 					},
 				},
 			},
@@ -183,7 +171,11 @@ func TestPodsOnNode(t *testing.T) {
 	}
 }
 
-func TestEvictPods(t *testing.T) {
+func TestEvictPod(t *testing.T) {
+	buffer := bytes.Buffer{}
+	//var wg sync.WaitGroup
+
+	messages := make(chan Result)
 	clientset := fake.NewSimpleClientset(
 		&v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
@@ -192,14 +184,26 @@ func TestEvictPods(t *testing.T) {
 			},
 		},
 	)
-	podMap := map[string]string{"test-pod": "test-space"}
+	pod := Pod{
+		name:      "test-pod",
+		nameSpace: "test-space",
+		writer:    &buffer,
+		//waitGroup: &wg,
+	}
+	//podMap := map[string]string{"test-pod": "test-space"}
 
-	buffer := bytes.Buffer{}
-	evictPods(clientset, podMap, &buffer)
-	got := buffer.String()
-	want := "evicting pod: test-pod in the test-space namespace"
+	//evictPods(clientset, podMap, &buffer)
+	go evictPod(clientset, pod, messages)
+	//got := buffer.String()
+	var got Result
+	select {
+	case got = <-messages:
+		fmt.Println(got)
+	}
 
-	if got != want {
-		t.Errorf("got %q want %q", got, want)
+	t.Log("t.Log:", got)
+	if got.Error != nil {
+		t.Errorf("got %q", got.Error)
 	}
 }
+

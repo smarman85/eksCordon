@@ -12,6 +12,16 @@ import (
 	//        "errors"
 )
 
+type Pod struct {
+	name, nameSpace string
+	writer          io.Writer
+}
+
+type Result struct {
+	Message string
+	Error   error
+}
+
 func int64Ptr(i int64) *int64 {
 	return &i
 }
@@ -84,31 +94,29 @@ func podsOnNode(clientset kubernetes.Interface, nodeName string) (map[string]str
 		return nil, err
 	}
 	for pod, _ := range pods.Items {
-		//fmt.Println(pods.Items[pod].Name, pods.Items[pod].Namespace)
-		if pods.Items[pod].Kind != "DaemonSet" {
-			podsOnNode[pods.Items[pod].Name] = pods.Items[pod].Namespace
-		}
+		podsOnNode[pods.Items[pod].Name] = pods.Items[pod].Namespace
 	}
 	return podsOnNode, nil
 }
 
-func evictPods(clientset kubernetes.Interface, podMap map[string]string, writer io.Writer) {
-	for container, namespace := range podMap {
-		fmt.Println("Container: ", container, "Namespace: ", namespace)
-		err := clientset.
-			CoreV1().
-			Pods(namespace).
-			Delete(container, &metav1.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
-		if err != nil {
-			log.Fatalf("error removing pod: %v", err)
-		}
-		messge := fmt.Sprintf("evicting pod: %s in the %s namespace", container, namespace)
-		fmt.Fprintf(writer, messge)
+func evictPod(clientset kubernetes.Interface, pod Pod, channel chan Result) {
+	//for container, namespace := range podMap {
+	message := Result{}
+	err := clientset.
+		CoreV1().
+		Pods(pod.nameSpace).
+		Delete(pod.name, &metav1.DeleteOptions{GracePeriodSeconds: int64Ptr(0)})
+	if err != nil {
+		message.Error = err
+	} else {
+		message.Message = fmt.Sprintf("evicting pod: %s in the %s namespace", pod.name, pod.nameSpace)
 	}
+	channel <- message
 }
 
 func drainNodes(clientset kubernetes.Interface, nodesInAZ []string) {
-	affectedPods := make(map[string]string, 0)
+
+	messages := make(chan Result)
 
 	for i := 0; i < len(nodesInAZ); i++ {
 		fmt.Println(nodesInAZ[i])
@@ -117,11 +125,18 @@ func drainNodes(clientset kubernetes.Interface, nodesInAZ []string) {
 			log.Fatalf("error getting pods on node: %v", err)
 		}
 		for podName, namespace := range pods {
-			affectedPods[podName] = namespace
+			p := Pod{
+				name:      podName,
+				nameSpace: namespace,
+				writer:    os.Stdout,
+			}
+			go evictPod(clientset, p, messages)
+		}
+		for i := 0; i < len(messages); i++ {
+			fmt.Println(<-messages)
 		}
 	}
 
-	evictPods(clientset, affectedPods, os.Stdout)
 }
 
 var cordonAZ = &cobra.Command{
@@ -143,3 +158,4 @@ var cordonAZ = &cobra.Command{
 		drainNodes(client, nodes)
 	},
 }
+
