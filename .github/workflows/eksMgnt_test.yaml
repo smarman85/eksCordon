@@ -19,6 +19,6 @@ jobs:
           go-version: ${{ matrix.go-versions }}
       - name: run go tests
         run: |
-          mkdir -p /home/runner/.kube
+          mkdir -p ${HOME}/.kube
           cat config-test > ${HOME}/.kube/config
           go test -v ./...
