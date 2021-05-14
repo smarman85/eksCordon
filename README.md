@@ -1,7 +1,8 @@
 # eksCordon
 A helper script for managing resources in EKS.
 
-![eksCordon Status](https://github.com/smarman85/eksCordon/actions/workflows/eksCordon_test.yaml/badge.svg)
+![eksCordon Status](https://github.com/smarman85/eksCordon/workflows/eksCordon/badge.svg)
+
 
 ## Usage:
 eksCordon uses the Kube config associated with the person running the command. You will need to change contexts to the cluster you
