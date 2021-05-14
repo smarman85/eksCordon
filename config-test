@@ -1,15 +1,11 @@
 apiVersion: v1
-kind: Config
-current-context: test-env
-preferences: {}
-
 clusters:
-- cluster:
-  name: test-env
-
-users:
-- name: tester
-
+- cluster: null
 contexts:
-- context:
-  name: test-env
+- context: null
+current-context: null
+kind: Config
+preferences: {}
+users:
+- name: sdm-user
+  user: {}
