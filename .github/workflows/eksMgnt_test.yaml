@@ -1,4 +1,4 @@
-name: eksMgnt tests
+name: eksCordon tests
 on:
   push:
     #paths:

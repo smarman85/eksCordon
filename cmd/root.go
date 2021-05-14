@@ -36,7 +36,7 @@ func init() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "eksMgnt",
+	Use:   "eksCordon",
 	Short: "Helper script to cordon and drain a troublesome availability zone",
 }
 

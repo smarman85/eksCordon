@@ -1,4 +1,4 @@
-module eksMgnt
+module eksCordon
 
 go 1.15
 
