@@ -1,7 +1,7 @@
 # eksCordon
 A helper script for managing resources in EKS.
 
-![eksCordon Status](https://github.com/smarman85/eksCordon/workflows/eksCordon/badge.svg)
+![eksCordon tests](https://github.com/smarman85/eksCordon/actions/workflows/eksMgnt_test.yaml/badge.svg)
 
 
 ## Usage:
