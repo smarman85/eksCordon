@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Config
+current-context: test-env
+preferences: {}
+
+clusters:
+- cluster:
+  name: test-env
+
+users:
+- name: tester
+
+contexts:
+- context:
+  name: test-env

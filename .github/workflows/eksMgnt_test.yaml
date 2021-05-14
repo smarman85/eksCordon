@@ -9,6 +9,9 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+      - run: |
+        mkdir ${HOME}/.kube
+        cp config-test ${HOME}/.kube/config
       # Runs a set of commands using the runners shell
       - name: Runs go tests
         run: |
