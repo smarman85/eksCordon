@@ -6,6 +6,7 @@ contexts:
 - context:
     cluster: test
     user: test
+  name: test
 current-context: test
 kind: Config
 preferences: {}
