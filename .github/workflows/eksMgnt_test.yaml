@@ -1,8 +1,8 @@
 name: eksCordon tests
 on:
   push:
-    #paths:
-    #  - 'eksMgnt/**'
+    paths:
+      - 'cmd/**'
 jobs:
   test:
     strategy:
