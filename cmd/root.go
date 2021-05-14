@@ -6,7 +6,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"os"
-	//"github.com/spf13/viper"
 )
 
 var (
@@ -18,13 +17,11 @@ func init() {
 	//config, err := rest.InClusterConfig()
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv("HOME")+"/.kube/config")
 	if err != nil {
-		//logging.LogErrorExitf("Error creating config: %v", err)
 		fmt.Printf("Error creating config: %v", err)
 	}
 
 	client, err = kubernetes.NewForConfig(config)
 	if err != nil {
-		//logging.LogErrorExitf("Error creating config: %v", err)
 		fmt.Printf("Error creating config: %v", err)
 	}
 
