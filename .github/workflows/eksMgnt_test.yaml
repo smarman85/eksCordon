@@ -13,5 +13,6 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: run go tests
         run: |
-          export KUBECONFIG=config-test
+          mkdir ${HOME}/.kube
+          cp ./config-test ${HOME}/.kube
           go test ./...
