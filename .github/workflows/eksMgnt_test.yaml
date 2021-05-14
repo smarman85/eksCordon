@@ -15,5 +15,5 @@ jobs:
         run: |
           mkdir -p /home/runner/.kube
           cat config-test
-          cat config-tets > ${HOME}/.kube/config
+          cat config-test > ${HOME}/.kube/config
           go test -v ./...
