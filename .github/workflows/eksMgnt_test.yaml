@@ -13,6 +13,7 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: run go tests
         run: |
-          mkdir ${HOME}/.kube
-          cp config-test ${HOME}/.kube/
-          go test ./...
+          mkdir -p /home/runner/.kube
+          cat config-test
+          cat config-tets > ${HOME}/.kube/config
+          go test -v ./...
