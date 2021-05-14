@@ -14,5 +14,5 @@ jobs:
       - name: run go tests
         run: |
           mkdir ${HOME}/.kube
-          cp ./config-test ${HOME}/.kube
+          cp config-test ${HOME}/.kube/
           go test ./...
