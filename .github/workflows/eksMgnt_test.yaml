@@ -5,20 +5,18 @@ on:
     #  - 'eksMgnt/**'
 jobs:
   test:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         go-versions: [1.15.x, 1.16.x]
-          #os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: checkout
         uses: actions/checkout@v2
-
       - name: Set up go version
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go-versions }}
-
       - name: run go tests
         run: |
           mkdir -p /home/runner/.kube
