@@ -1,7 +1,7 @@
 package main
 
 import (
-	"eksCordon/cmd"
+	"eksMgnt/cmd"
 )
 
 func main() {

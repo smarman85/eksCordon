@@ -8,8 +8,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"log"
 	"os"
-	//scalev1 "k8s.io/api/autoscaling/v1"
-	//        "errors"
+	"strings"
 )
 
 type Pod struct {
@@ -20,6 +19,11 @@ type Pod struct {
 type Result struct {
 	Message string
 	Error   error
+}
+
+type Node struct {
+	name  string
+	patch []byte
 }
 
 func int64Ptr(i int64) *int64 {
@@ -49,39 +53,69 @@ func toggleClusterAutoScaler(clientset kubernetes.Interface, desiredReplicas int
 	return &updatedScale.Spec.Replicas, nil
 }
 
-//func getNodesInAZ(zone string) ([]string, error) {
 func getNodesInAZ(clientset kubernetes.Interface, zone string) ([]string, error) {
 	k8sNodes := make([]string, 0)
 	nodes, err := clientset.CoreV1().
 		Nodes().
 		List(metav1.ListOptions{LabelSelector: "failure-domain.beta.kubernetes.io/zone=" + zone})
 	if err != nil {
-		//fmt.Printf("error listing nodes in az: %v", err)
 		return nil, err
 	}
 	for node, _ := range nodes.Items {
 		k8sNodes = append(k8sNodes, nodes.Items[node].ObjectMeta.Labels["kubernetes.io/hostname"])
 	}
 	if len(k8sNodes) == 0 {
-		//return k8sNodes, errors.New("There are no nodes in the given zone")
-		k8sNodes = append(k8sNodes, "docker-desktop")
 		return nil, err
 	}
-	return k8sNodes, err
+	return k8sNodes, nil
 }
 
-func cordonNodes(clientset kubernetes.Interface, nodesInAZ []string, writer io.Writer) {
-	patch := []byte(`{"spec":{"unschedulable":true}}`)
-	for i := 0; i < len(nodesInAZ); i++ {
-		_, err := clientset.CoreV1().
-			Nodes().
-			Patch(nodesInAZ[i], "application/strategic-merge-patch+json", patch)
-		if err != nil {
-			log.Fatalf("error patching node: %v", err)
-		}
-		message := fmt.Sprintf("Successfully Cordoned node: %s \n", nodesInAZ[i])
-		fmt.Fprintf(writer, message)
+func PatchNode(clientset kubernetes.Interface, node Node, channel chan Result) {
+	message := Result{}
+	updatedNode, err := clientset.CoreV1().
+		Nodes().
+		Patch(node.name, "application/strategic-merge-patch+json", node.patch)
+	if err != nil {
+		message.Error = err
 	}
+
+	message.Message = fmt.Sprintf("node: %s unschedulable: %t\n", node.name, updatedNode.Spec.Unschedulable)
+
+	channel <- message
+}
+
+func cordonNodes(clientset kubernetes.Interface, nodesInAZ []string, writer io.Writer) bool {
+
+	messages := make(chan Result)
+	specPatch := []byte(`{"spec":{"unschedulable":true}}`)
+	cordoningErrors := []string{}
+	allNodesCordoned := false
+
+	for i := 0; i < len(nodesInAZ); i++ {
+		node := Node{
+			name:  nodesInAZ[i],
+			patch: specPatch,
+		}
+		go PatchNode(clientset, node, messages)
+	}
+
+	for i := 0; i < len(messages); i++ {
+		returnMessages := <-messages
+		if returnMessages.Error != nil {
+			cordoningErrors = append(cordoningErrors, fmt.Sprintf("%v", returnMessages.Error))
+		} else {
+			fmt.Fprintf(writer, returnMessages.Message)
+		}
+	}
+
+	if len(cordoningErrors) != 0 {
+		fmt.Fprintf(writer, strings.Join(cordoningErrors, "\n"))
+	} else {
+		allNodesCordoned = true
+	}
+
+	return allNodesCordoned
+
 }
 
 func podsOnNode(clientset kubernetes.Interface, nodeName string) (map[string]string, error) {
@@ -100,7 +134,6 @@ func podsOnNode(clientset kubernetes.Interface, nodeName string) (map[string]str
 }
 
 func evictPod(clientset kubernetes.Interface, pod Pod, channel chan Result) {
-	//for container, namespace := range podMap {
 	message := Result{}
 	err := clientset.
 		CoreV1().
@@ -133,7 +166,8 @@ func drainNodes(clientset kubernetes.Interface, nodesInAZ []string) {
 			go evictPod(clientset, p, messages)
 		}
 		for i := 0; i < len(messages); i++ {
-			fmt.Println(<-messages)
+			result := <-messages
+			fmt.Println(result.Message)
 		}
 	}
 
@@ -149,13 +183,14 @@ var cordonAZ = &cobra.Command{
 		if err != nil {
 			fmt.Printf("error scaling cluster autoscaler: %v", err)
 		}
-		fmt.Println("Cordon!\t" + zone)
+		fmt.Println("Cordoning:\t" + zone)
 		nodes, err := getNodesInAZ(client, zone)
 		if err != nil {
 			log.Fatalf("error getting nodes in %s: %v", zone, err)
 		}
-		cordonNodes(client, nodes, os.Stdout)
-		drainNodes(client, nodes)
+		desiredNodesCordoned := cordonNodes(client, nodes, os.Stdout)
+		if desiredNodesCordoned {
+			drainNodes(client, nodes)
+		}
 	},
 }
-
