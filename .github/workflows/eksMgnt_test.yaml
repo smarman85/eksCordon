@@ -1,8 +1,8 @@
 name: eksMgnt tests
 on:
   push:
-    paths:
-      - 'eksMgnt/**'
+    #paths:
+    #  - 'eksMgnt/**'
 jobs:
   test:
     strategy:
