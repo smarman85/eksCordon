@@ -5,16 +5,11 @@ on:
     #  - 'eksMgnt/**'
 jobs:
   test:
-    strategy:
-      matrix:
-        go-version: [1.15.x, 1.16.x]
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-      - name: use go version
-        with:
-          go-version: ${{ matrix.go-version }}
+      # Runs a set of commands using the runners shell
+      - name: Runs go tests
         run: |
-          cd eksMgnt
-          go test -v ./...
+          go test ./...
