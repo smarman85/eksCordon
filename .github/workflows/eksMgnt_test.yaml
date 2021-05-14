@@ -8,11 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-      - run: |
-        mkdir ${HOME}/.kube
-        cp config-test ${HOME}/.kube/config
+      - name: checkout
+        uses: actions/checkout@v2
       # Runs a set of commands using the runners shell
-      - name: Runs go tests
+      - name: run go tests
         run: |
+          export KUBECONFIG=config-test
           go test ./...
