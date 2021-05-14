@@ -1,15 +1,28 @@
 apiVersion: v1
 clusters:
 - cluster:
-    server: test
+    server: https://localhost:8080
+    extensions:
+    - name: client.authentication.k8s.io/exec
+      extension:
+        audience: foo
+        other: bar
+  name: foo-cluster
 contexts:
 - context:
-    cluster: test
-    user: test
-  name: test
-current-context: test
+    cluster: foo-cluster
+    user: foo-user
+    namespace: bar
+  name: foo-context
+current-context: foo-context
 kind: Config
-preferences: {}
 users:
-- name: test
-  user: {}
+- name: foo-user
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1alpha1
+      args:
+      - arg-1
+      - arg-2
+      command: foo-command
+      provideClusterInfo: true
