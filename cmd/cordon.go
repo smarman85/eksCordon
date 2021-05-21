@@ -119,25 +119,21 @@ func cordonNodes(clientset kubernetes.Interface, nodesInAZ []string, writer io.W
 
 }
 
-func ownedByDaemonSet(pod v1.Pod) bool {
-	dsOwned := false
+func isRemovable(pod v1.Pod) bool {
 	if len(pod.OwnerReferences) > 0 {
 		for _, controller := range pod.OwnerReferences {
 			if controller.Kind == "DaemonSet" {
-				return true
+				return false
 			}
 		}
 	}
-	return dsOwned
+	for volume, _ := range pod.Spec.Volumes {
+		if pod.Spec.Volumes[volume].VolumeSource.EmptyDir.Medium == "Memory" {
+			return false
+		}
+	}
+	return true
 }
-
-/*
-func hasRamDrive(pod v1.Pod) bool {
-        for _, volume := range pod.Volumes {
-                fmt.Println(pod)
-        }
-}
-*/
 
 func podsOnNode(clientset kubernetes.Interface, nodeName string) (map[string]string, error) {
 	podsOnNode := make(map[string]string, 0)
@@ -150,7 +146,7 @@ func podsOnNode(clientset kubernetes.Interface, nodeName string) (map[string]str
 	}
 	for pod, _ := range pods.Items {
 		//if !ownedByDaemonSet(pods.Items[pod]) && !hasRamDrive(pods.Items[pod]) {
-		if !ownedByDaemonSet(pods.Items[pod]) {
+		if isRemovable(pods.Items[pod]) {
 			podsOnNode[pods.Items[pod].Name] = pods.Items[pod].Namespace
 		}
 	}
@@ -218,4 +214,3 @@ var cordonAZ = &cobra.Command{
 		}
 	},
 }
-

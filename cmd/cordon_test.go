@@ -230,6 +230,33 @@ func TestPodsOnNode(t *testing.T) {
 						Volumes: []v1.Volume{
 							v1.Volume{
 								Name: "ram-drvie",
+								VolumeSource: v1.VolumeSource{
+									EmptyDir: &v1.EmptyDirVolumeSource{
+										Medium: "Memory",
+									},
+								},
+							},
+						},
+					},
+				},
+				v1.Pod{
+					TypeMeta: metav1.TypeMeta{
+						Kind: "Pod",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "snowball",
+						Namespace: "existence",
+					},
+					Spec: v1.PodSpec{
+						NodeName: "node1",
+						Volumes: []v1.Volume{
+							v1.Volume{
+								Name: "bifrost",
+								VolumeSource: v1.VolumeSource{
+									EmptyDir: &v1.EmptyDirVolumeSource{
+										Medium: "",
+									},
+								},
 							},
 						},
 					},
@@ -246,6 +273,7 @@ func TestPodsOnNode(t *testing.T) {
 	want := map[string]string{
 		"mr-meeseeks": "existence",
 		"jerry":       "existence",
+		"snowball":    "existence",
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -283,4 +311,3 @@ func TestEvictPod(t *testing.T) {
 		t.Errorf("got %q", got.Error)
 	}
 }
-
