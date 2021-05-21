@@ -6,6 +6,7 @@ import (
 	appv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 	"reflect"
@@ -134,7 +135,43 @@ func TestPatchNode(t *testing.T) {
 	}
 }
 
+func NewControllerRef(owner metav1.ObjectMeta, gvk schema.GroupVersionKind) *metav1.OwnerReference {
+	blockOwnerDeletion := true
+	isController := true
+	return &metav1.OwnerReference{
+		APIVersion:         gvk.GroupVersion().String(),
+		Kind:               gvk.Kind,
+		Name:               owner.GetName(),
+		UID:                owner.GetUID(),
+		BlockOwnerDeletion: &blockOwnerDeletion,
+		Controller:         &isController,
+	}
+}
+
 func TestPodsOnNode(t *testing.T) {
+
+	rsgvk := schema.GroupVersionKind{
+		Group:   "apps",
+		Version: "v1",
+		Kind:    "ReplicaSet",
+	}
+
+	dsgvk := schema.GroupVersionKind{
+		Group:   "apps",
+		Version: "v1",
+		Kind:    "DaemonSet",
+	}
+
+	rs := metav1.ObjectMeta{
+		UID:  "uid1",
+		Name: "ms-rs",
+	}
+
+	ds := metav1.ObjectMeta{
+		UID:  "uid2",
+		Name: "m-ds",
+	}
+
 	clientset := fake.NewSimpleClientset(
 		&v1.PodList{
 			Items: []v1.Pod{
@@ -145,21 +182,71 @@ func TestPodsOnNode(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mr-meeseeks",
 						Namespace: "existence",
+						OwnerReferences: []metav1.OwnerReference{
+							*NewControllerRef(rs, rsgvk),
+						},
 					},
 					Spec: v1.PodSpec{
 						NodeName: "node1",
 					},
 				},
+				v1.Pod{
+					TypeMeta: metav1.TypeMeta{
+						Kind: "Pod",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "morty",
+						Namespace: "existence",
+						OwnerReferences: []metav1.OwnerReference{
+							*NewControllerRef(ds, dsgvk),
+						},
+					},
+					Spec: v1.PodSpec{
+						NodeName: "node1",
+					},
+				},
+				v1.Pod{
+					TypeMeta: metav1.TypeMeta{
+						Kind: "Pod",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "jerry",
+						Namespace: "existence",
+					},
+					Spec: v1.PodSpec{
+						NodeName: "node1",
+					},
+				},
+				v1.Pod{
+					TypeMeta: metav1.TypeMeta{
+						Kind: "Pod",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "rick",
+						Namespace: "existence",
+					},
+					Spec: v1.PodSpec{
+						NodeName: "node1",
+						Volumes: []v1.Volume{
+							v1.Volume{
+								Name: "ram-drvie",
+							},
+						},
+					},
+				},
 			},
-		},
-	)
+		})
+
 	nodeName := "node1"
 
 	got, err := podsOnNode(clientset, nodeName)
 	if err != nil {
 		t.Errorf("Error getting pod list: %v", err)
 	}
-	want := map[string]string{"mr-meeseeks": "existence"}
+	want := map[string]string{
+		"mr-meeseeks": "existence",
+		"jerry":       "existence",
+	}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q want %q", got, want)
@@ -196,3 +283,4 @@ func TestEvictPod(t *testing.T) {
 		t.Errorf("got %q", got.Error)
 	}
 }
+
