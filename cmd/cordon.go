@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"io"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"log"
@@ -118,6 +119,22 @@ func cordonNodes(clientset kubernetes.Interface, nodesInAZ []string, writer io.W
 
 }
 
+func isRemovable(pod v1.Pod) bool {
+	if len(pod.OwnerReferences) > 0 {
+		for _, controller := range pod.OwnerReferences {
+			if controller.Kind == "DaemonSet" {
+				return false
+			}
+		}
+	}
+	for volume, _ := range pod.Spec.Volumes {
+		if pod.Spec.Volumes[volume].VolumeSource.EmptyDir.Medium == "Memory" {
+			return false
+		}
+	}
+	return true
+}
+
 func podsOnNode(clientset kubernetes.Interface, nodeName string) (map[string]string, error) {
 	podsOnNode := make(map[string]string, 0)
 	pods, err := clientset.CoreV1().
@@ -128,7 +145,10 @@ func podsOnNode(clientset kubernetes.Interface, nodeName string) (map[string]str
 		return nil, err
 	}
 	for pod, _ := range pods.Items {
-		podsOnNode[pods.Items[pod].Name] = pods.Items[pod].Namespace
+		//if !ownedByDaemonSet(pods.Items[pod]) && !hasRamDrive(pods.Items[pod]) {
+		if isRemovable(pods.Items[pod]) {
+			podsOnNode[pods.Items[pod].Name] = pods.Items[pod].Namespace
+		}
 	}
 	return podsOnNode, nil
 }
